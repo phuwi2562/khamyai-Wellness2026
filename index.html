@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KhamYai Family Wellness Tracker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#F1EEE0;
+  --surface:#FCFAF0;
+  --surface-2:#E9E4CF;
+  --ink:#2A3626;
+  --ink-soft:#5C6B57;
+  --green:#35553F;
+  --green-light:#6B8F6E;
+  --gold:#E1A73C;
+  --clay:#B65B3D;
+  --line:#DBD4B9;
+  --status-green:#4C9A5D;
+  --status-amber:#D9A23B;
+  --status-red:#C6533E;
+  --radius:18px;
+  --radius-sm:12px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  font-family:'Sarabun','Noto Sans Thai','Leelawadee UI',sans-serif;
+  color:var(--ink);
+  display:flex;
+  justify-content:center;
+  padding:28px 12px;
+  min-height:100vh;
+}
+.phone{
+  width:100%;
+  max-width:390px;
+  background:var(--surface);
+  border-radius:32px;
+  box-shadow:0 20px 60px rgba(53,85,63,0.18), 0 2px 8px rgba(53,85,63,0.10);
+  overflow:hidden;
+  border:1px solid var(--line);
+  position:relative;
+}
+.topbar{
+  padding:20px 20px 14px;
+  background:var(--green);
+  color:var(--surface);
+  position:relative;
+  overflow:hidden;
+}
+.topbar::after{
+  content:"";
+  position:absolute; right:-30px; top:-30px;
+  width:120px;height:120px;border-radius:50%;
+  background:rgba(225,167,60,0.18);
+}
+.wordmark{
+  font-family:'Kanit',sans-serif;
+  font-weight:700;
+  font-size:15px;
+  letter-spacing:0.3px;
+  display:flex;align-items:center;gap:8px;
+}
+.wordmark .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);}
+.household-row{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  margin-top:14px;
+}
+.household-name{font-family:'Kanit',sans-serif;font-weight:600;font-size:22px;}
+.household-sub{font-size:12px;opacity:0.85;margin-top:2px;}
+.date-chip{
+  font-size:11px;background:rgba(255,255,255,0.14);
+  padding:5px 10px;border-radius:20px;
+}
+
+.screen{display:none; padding:20px; padding-bottom:100px;}
+.screen.active{display:block;}
+
+/* ---- DIAL ---- */
+.dial-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  margin:6px 0 18px;
+}
+.dial-caption{
+  margin-top:10px;font-size:13px;color:var(--ink-soft);text-align:center;
+  max-width:260px;line-height:1.5;
+}
+.dial-caption b{color:var(--ink);}
+
+.section-title{
+  font-family:'Kanit',sans-serif;font-weight:600;font-size:15px;
+  margin:22px 0 10px;display:flex;align-items:center;gap:8px;
+  color:var(--green);
+}
+.section-title .eyebrow{
+  font-family:'Sarabun',sans-serif;font-weight:600;font-size:10px;
+  color:var(--gold); background:rgba(225,167,60,0.16);
+  padding:2px 8px;border-radius:20px;letter-spacing:0.5px;
+}
+
+.chip-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;}
+.chip{
+  flex:0 0 auto;
+  background:var(--surface-2);
+  border-radius:14px;
+  padding:10px 12px;
+  min-width:76px;
+  text-align:center;
+  border:1px solid var(--line);
+}
+.chip .ic{font-size:20px;}
+.chip .lb{font-size:10.5px;margin-top:4px;color:var(--ink-soft);line-height:1.3;}
+.chip.done{background:rgba(76,154,93,0.14); border-color:rgba(76,154,93,0.4);}
+.chip.done .lb{color:var(--status-green);font-weight:600;}
+
+.member-card{
+  display:flex;align-items:center;gap:12px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  padding:12px 14px;
+  margin-bottom:10px;
+}
+.avatar{
+  width:42px;height:42px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Kanit',sans-serif;font-weight:600;font-size:15px;color:#fff;
+  flex:0 0 auto;
+}
+.mc-body{flex:1;min-width:0;}
+.mc-name{font-weight:600;font-size:14px;}
+.mc-meta{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+.status-pill{
+  font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:20px;color:#fff;flex:0 0 auto;
+}
+
+.plus-btn{
+  width:34px;height:34px;border-radius:50%;border:none;
+  background:var(--green); color:#fff; font-size:18px; cursor:pointer;
+  flex:0 0 auto; line-height:1;
+}
+.plus-btn:hover{background:var(--green-light);}
+
+.log-form{
+  display:none;background:var(--surface);
+  border:1px dashed var(--line);
+  border-radius:var(--radius-sm);
+  padding:12px;margin:-2px 0 12px;
+}
+.log-form.open{display:block;}
+.log-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.log-grid label{font-size:11px;color:var(--ink-soft);display:block;margin-bottom:3px;}
+.log-grid input{
+  width:100%;padding:7px 8px;border-radius:8px;border:1px solid var(--line);
+  font-family:'Sarabun',sans-serif;font-size:13px;background:#fff;
+}
+.save-btn{
+  width:100%;padding:9px;border:none;border-radius:10px;
+  background:var(--gold);color:#3a2a10;font-weight:600;font-size:13px;cursor:pointer;
+  font-family:'Sarabun',sans-serif;
+}
+.save-btn:active{transform:scale(0.98);}
+
+/* plan cards */
+.plan-card{
+  background:var(--surface-2);border:1px solid var(--line);
+  border-radius:var(--radius-sm); margin-bottom:12px; overflow:hidden;
+}
+.plan-head{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;
+}
+.plan-ic{
+  width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:17px;flex:0 0 auto;
+}
+.plan-title{font-weight:600;font-size:13.5px;flex:1;}
+.plan-progress-wrap{width:60px;}
+.progress-bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--status-green);border-radius:6px;transition:width .3s;}
+.progress-label{font-size:9.5px;color:var(--ink-soft);text-align:right;margin-top:2px;}
+.plan-tasks{display:none;padding:0 14px 14px 58px;}
+.plan-tasks.open{display:block;}
+.task-row{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 0;color:var(--ink-soft);}
+.task-row input{accent-color:var(--green);width:15px;height:15px;}
+.task-row.checked{color:var(--ink);}
+.task-row.checked span{text-decoration:line-through;text-decoration-color:var(--line);}
+
+/* community */
+.banner{
+  background:linear-gradient(135deg, var(--clay), #8f4530);
+  color:#fff;border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;
+}
+.banner .t1{font-family:'Kanit',sans-serif;font-weight:600;font-size:14px;}
+.banner .t2{font-size:11.5px;opacity:0.9;margin-top:3px;line-height:1.5;}
+.banner button{
+  margin-top:10px;background:#fff;color:var(--clay);border:none;
+  padding:7px 14px;border-radius:20px;font-weight:600;font-size:12px;cursor:pointer;
+}
+.lb-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.lb-rank{font-family:'Kanit',sans-serif;font-weight:700;font-size:13px;color:var(--ink-soft);width:18px;}
+.lb-body{flex:1;}
+.lb-name{font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;}
+.lb-name b{color:var(--green);font-weight:700;}
+.lb-track{height:8px;background:var(--surface-2);border-radius:6px;margin-top:4px;overflow:hidden;}
+.lb-fill{height:100%;border-radius:6px;background:var(--gold);}
+.lb-row.me .lb-fill{background:var(--green);}
+.lb-row.me .lb-name{color:var(--green);}
+.lb-village{font-size:10.5px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;margin-top:1px;}
+.zone-tag{font-size:9px;font-weight:600;padding:1px 7px;border-radius:20px;}
+.zone-tag.muni{background:rgba(225,167,60,0.2);color:#8C6B2E;}
+.zone-tag.obt{background:rgba(107,143,110,0.2);color:var(--green);}
+.legend{display:flex;gap:14px;font-size:10.5px;color:var(--ink-soft);margin:-4px 0 14px;}
+.legend span{display:flex;align-items:center;gap:5px;}
+.legend i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+/* bottom nav */
+.navbar{
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--surface);border-top:1px solid var(--line);
+  display:flex;justify-content:space-around;padding:9px 2px 13px;
+}
+.navbtn{
+  background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;
+  color:var(--ink-soft);font-family:'Sarabun',sans-serif;font-size:9.5px;cursor:pointer;
+  padding:4px 5px;font-weight:600;
+}
+.navbtn .ic{font-size:18px;}
+.navbtn.active{color:var(--green);}
+
+::-webkit-scrollbar{height:0px;width:0px;}
+
+/* staff dashboard */
+.staff-summary{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;
+}
+.stat-card{
+  background:var(--green);color:#fff;border-radius:var(--radius-sm);padding:14px;
+}
+.stat-card.alt{background:var(--clay);}
+.stat-num{font-family:'Kanit',sans-serif;font-weight:700;font-size:24px;}
+.stat-lb{font-size:10.5px;opacity:0.9;margin-top:2px;line-height:1.4;}
+
+.filter-row{display:flex;gap:8px;margin-bottom:14px;}
+.filter-btn{
+  flex:1;text-align:center;padding:8px 6px;border-radius:20px;border:1px solid var(--line);
+  background:var(--surface);font-size:11.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;
+}
+.filter-btn.active{background:var(--green);border-color:var(--green);color:#fff;}
+
+.vcard{
+  background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:12px 14px;margin-bottom:10px;position:relative;
+}
+.vcard.top-risk{border-color:var(--status-red); box-shadow:0 0 0 1px var(--status-red) inset;}
+.vcard.low-risk{border-color:var(--status-green); box-shadow:0 0 0 1px var(--status-green) inset;}
+.vcard-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.vcard-name{font-weight:700;font-size:13.5px;}
+.vcard-hh{font-size:10.5px;color:var(--ink-soft);margin-top:2px;}
+.risk-badge{
+  font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--status-red);
+  color:#fff;position:absolute;top:-8px;right:12px;letter-spacing:0.3px;
+}
+.risk-badge.low{background:var(--status-green); right:auto; left:12px;}
+.stack-bar{height:12px;border-radius:6px;overflow:hidden;display:flex;background:var(--line);}
+.stack-seg{height:100%;}
+.vcard-foot{display:flex;justify-content:space-between;margin-top:7px;font-size:10.5px;color:var(--ink-soft);}
+.vcard-foot b{color:var(--status-red);}
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="topbar">
+    <div class="wordmark"><span class="dot"></span>KHAMYAI FAMILY WELLNESS</div>
+    <div class="household-row">
+      <div>
+        <div class="household-name">บ้านสมบูรณ์สุข</div>
+        <div class="household-sub">หมู่ 4 บ้านนาดี · เขต อบต. · ต.คำใหญ่</div>
+      </div>
+      <div class="date-chip" id="todayChip">อัปเดตล่าสุดวันนี้</div>
+    </div>
+  </div>
+
+  <!-- SCREEN 1: HOME -->
+  <div class="screen active" id="screen-home">
+    <div class="dial-wrap">
+      <svg id="dial" width="230" height="230" viewBox="0 0 230 230"></svg>
+      <div class="dial-caption" id="dialCaption"></div>
+    </div>
+
+    <div class="section-title"><span class="eyebrow">6 ด้าน</span>ภารกิจวันนี้</div>
+    <div class="chip-row" id="taskChips"></div>
+
+    <div class="section-title" style="margin-top:26px;">ตัวเลขล่าสุดของครอบครัว</div>
+    <div id="homeMemberList"></div>
+  </div>
+
+  <!-- SCREEN 2: VITALS LOG -->
+  <div class="screen" id="screen-log">
+    <div class="section-title">บันทึกค่าสุขภาพ</div>
+    <p style="font-size:12px;color:var(--ink-soft);margin-top:-4px;">แตะ + เพื่อกรอกค่าที่วัดจากสถานีสุขภาพ</p>
+    <div id="logMemberList"></div>
+  </div>
+
+  <!-- SCREEN 3: FAMILY PLAN -->
+  <div class="screen" id="screen-plan">
+    <div class="section-title">แผนสุขภาพครอบครัว 6 ด้าน</div>
+    <p style="font-size:12px;color:var(--ink-soft);margin-top:-4px;">ติ๊กภารกิจที่ทำสำเร็จในสัปดาห์นี้</p>
+    <div id="planList"></div>
+  </div>
+
+  <!-- SCREEN 4: COMMUNITY -->
+  <div class="screen" id="screen-community">
+    <div class="banner">
+      <div class="t1">🏃 ชวนวิ่ง-ปั่นหมู่ 4 สัปดาห์นี้</div>
+      <div class="t2">สะสมแต้มร่วมกับเพื่อนบ้าน อ้างอิงแนวทางโครงการก้าวท้าใจ กรมอนามัย</div>
+      <button onclick="joinChallenge()">เข้าร่วมกิจกรรม</button>
+    </div>
+    <div class="section-title">อันดับคะแนนครัวเรือน (หมู่ 4)</div>
+    <div id="leaderboard"></div>
+  </div>
+
+  <!-- SCREEN 5: STAFF DASHBOARD -->
+  <div class="screen" id="screen-staff">
+    <div class="section-title"><span class="eyebrow">12 หมู่บ้าน</span>ภาพรวมความเสี่ยงตำบลคำใหญ่</div>
+    <div class="staff-summary">
+      <div class="stat-card">
+        <div class="stat-num" id="statHouseholds">-</div>
+        <div class="stat-lb">ครัวเรือนทั้งตำบล</div>
+      </div>
+      <div class="stat-card alt">
+        <div class="stat-num" id="statRedHH">-</div>
+        <div class="stat-lb">ครัวเรือนเสี่ยงสูง (แดง)</div>
+      </div>
+    </div>
+    <div class="filter-row" id="zoneFilters">
+      <div class="filter-btn active" data-zone="all" onclick="setZoneFilter('all')">ทั้งหมด</div>
+      <div class="filter-btn" data-zone="เทศบาล" onclick="setZoneFilter('เทศบาล')">เขตเทศบาล</div>
+      <div class="filter-btn" data-zone="อบต." onclick="setZoneFilter('อบต.')">เขต อบต.</div>
+    </div>
+    <p style="font-size:11px;color:var(--ink-soft);margin:-6px 0 12px;">เรียงจาก % ครัวเรือนเสี่ยงสูงมากไปน้อย</p>
+    <div id="villageList"></div>
+  </div>
+
+  <div class="navbar">
+    <button class="navbtn active" data-screen="home" onclick="showScreen('home')">
+      <span class="ic">🏠</span>หน้าแรก</button>
+    <button class="navbtn" data-screen="log" onclick="showScreen('log')">
+      <span class="ic">📋</span>บันทึกค่า</button>
+    <button class="navbtn" data-screen="plan" onclick="showScreen('plan')">
+      <span class="ic">🗓️</span>แผนสุขภาพ</button>
+    <button class="navbtn" data-screen="community" onclick="showScreen('community')">
+      <span class="ic">🤝</span>ชุมชน</button>
+    <button class="navbtn" data-screen="staff" onclick="showScreen('staff')">
+      <span class="ic">🩺</span>จนท./อสม.</button>
+  </div>
+</div>
+
+<script>
+/* ---------------- STATE ---------------- */
+const statusColor = {green:'var(--status-green)', amber:'var(--status-amber)', red:'var(--status-red)'};
+const statusHex = {green:'#4C9A5D', amber:'#D9A23B', red:'#C6533E'};
+const statusLabel = {green:'ปกติ', amber:'เฝ้าระวัง', red:'เสี่ยงสูง'};
+const avatarColors = ['#35553F','#B65B3D','#6B8F6E','#8C6B2E'];
+
+let members = [
+  {id:1, name:'พ่อสมชาย', role:'หัวหน้าครอบครัว', weight:82, waist:98, sys:145, dia:92, sugar:118},
+  {id:2, name:'แม่สมศรี', role:'คู่สมรส', weight:65, waist:81, sys:118, dia:76, sugar:92},
+  {id:3, name:'น้องพลอย', role:'บุตรสาว', weight:48, waist:68, sys:110, dia:70, sugar:85},
+  {id:4, name:'ยายทองม้วน', role:'มารดา', weight:58, waist:90, sys:158, dia:96, sugar:132},
+];
+
+function computeStatus(m){
+  let score = 0;
+  if(m.waist >= 90) score++;
+  if(m.sys >= 140 || m.dia >= 90) score += 2;
+  else if(m.sys >= 130 || m.dia >= 85) score += 1;
+  if(m.sugar >= 126) score += 2;
+  else if(m.sugar >= 100) score += 1;
+  if(score >= 3) return 'red';
+  if(score >= 1) return 'amber';
+  return 'green';
+}
+
+let tasks = [
+  {ic:'🍽️', lb:'จานอาหาร 2:1:1', done:true},
+  {ic:'🚶', lb:'ขยับกาย 30 นาที', done:true},
+  {ic:'😴', lb:'งดจอก่อนนอน', done:false},
+  {ic:'🧘', lb:'ฝึกสติ 10 นาที', done:false},
+  {ic:'🚭', lb:'ปลอดบุหรี่วันนี้', done:true},
+  {ic:'👨‍👩‍👧', lb:'ทำกิจกรรมร่วมบ้าน', done:false},
+];
+
+let plans = [
+  {ic:'🍽️', color:'#E1A73C', title:'โภชนาการ', tasks:[
+    {t:'จัดจานตามสัดส่วนผัก½ แป้ง¼ โปรตีน¼ อย่างน้อย 2 มื้อ/วัน', done:true},
+    {t:'งดชานมไข่มุก/น้ำหวานตลอดสัปดาห์', done:true},
+    {t:'ลดเค็ม ไม่เติมน้ำปลาเพิ่มบนโต๊ะ', done:false},
+  ]},
+  {ic:'🚶', color:'#6B8F6E', title:'การเคลื่อนไหวร่างกาย', tasks:[
+    {t:'เดินเร็ว/ปั่นจักรยานสะสม 150 นาที/สัปดาห์', done:true},
+    {t:'ยืดเส้นทุก 1 ชั่วโมงเวลาทำงาน', done:false},
+  ]},
+  {ic:'😴', color:'#35553F', title:'การนอนหลับ', tasks:[
+    {t:'เข้านอน-ตื่นเวลาเดิมทุกวัน รวมวันหยุด', done:false},
+    {t:'งดจอมือถือก่อนนอน 1-2 ชั่วโมง', done:false},
+  ]},
+  {ic:'🧘', color:'#B65B3D', title:'การจัดการความเครียด', tasks:[
+    {t:'ฝึกหายใจ/สติวันละ 10-15 นาที', done:true},
+    {t:'ปิดแจ้งเตือนงานหลังเลิกงาน', done:false},
+  ]},
+  {ic:'🚭', color:'#8C6B2E', title:'งดสารเสพติด', tasks:[
+    {t:'นับวันปลอดบุหรี่ต่อเนื่อง', done:true},
+    {t:'จำกัดแอลกอฮอล์ในสัปดาห์นี้', done:true},
+  ]},
+  {ic:'🤝', color:'#4C9A5D', title:'ความสัมพันธ์ทางสังคม', tasks:[
+    {t:'ร่วมกลุ่มวิ่ง/ปั่นของหมู่บ้าน', done:false},
+    {t:'ทำกิจกรรมกับครอบครัวสัปดาห์ละ 1 ครั้ง', done:false},
+  ]},
+];
+
+let leaderboard = [
+  {name:'บ้านสมบูรณ์สุข', village:'หมู่ 4 บ้านนาดี', zone:'อบต.', score:72, me:true},
+  {name:'บ้านคำใหญ่พัฒนา', village:'หมู่ 7 บ้านคำใหญ่', zone:'เทศบาล', score:88, me:false},
+  {name:'บ้านห้วยยางร่วมใจ', village:'หมู่ 5 บ้านห้วยยาง', zone:'อบต.', score:65, me:false},
+  {name:'บ้านโพธิ์ทองยั่งยืน', village:'หมู่ 9 บ้านโพธิ์ทอง', zone:'เทศบาล', score:60, me:false},
+  {name:'บ้านหัวสนามแข็งแรง', village:'หมู่ 1 บ้านหัวสนาม', zone:'อบต.', score:54, me:false},
+  {name:'บ้านโคกป่ากุงสุขใจ', village:'หมู่ 10 บ้านโคกป่ากุง', zone:'เทศบาล', score:47, me:false},
+];
+
+/* ---------------- RENDER: DIAL ---------------- */
+function renderDial(){
+  const svg = document.getElementById('dial');
+  const counts = {green:0, amber:0, red:0};
+  members.forEach(m => counts[computeStatus(m)]++);
+  const total = members.length;
+  const pct = Math.round((counts.green/total)*100);
+
+  const cx=115, cy=115, rOuter=100, rInner=82;
+  let html = '';
+
+  // woven basket texture: alternating dashed rings (กระด้ง motif)
+  for(let i=0;i<3;i++){
+    const r = rOuter - i*7;
+    html += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#DBD4B9" stroke-width="1.4" stroke-dasharray="${i%2===0?'3 5':'6 3'}"/>`;
+  }
+  // spokes like basket ribs
+  for(let a=0; a<360; a+=15){
+    const rad = a*Math.PI/180;
+    const x1 = cx + (rOuter-2)*Math.cos(rad), y1 = cy + (rOuter-2)*Math.sin(rad);
+    const x2 = cx + (rOuter-16)*Math.cos(rad), y2 = cy + (rOuter-16)*Math.sin(rad);
+    html += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#C9C2A4" stroke-width="1"/>`;
+  }
+
+  // segmented status ring
+  let offset = 0;
+  const circumference = 2*Math.PI*rInner;
+  ['green','amber','red'].forEach(key=>{
+    const frac = counts[key]/total;
+    if(frac>0){
+      const len = frac*circumference;
+      html += `<circle cx="${cx}" cy="${cy}" r="${rInner}" fill="none" stroke="${statusHex[key]}" stroke-width="10"
+        stroke-dasharray="${len} ${circumference-len}" stroke-dashoffset="${-offset}"
+        transform="rotate(-90 ${cx} ${cy})" stroke-linecap="round"/>`;
+      offset += len;
+    }
+  });
+
+  // center text
+  html += `<text x="${cx}" y="${cy-6}" text-anchor="middle" font-family="Kanit" font-weight="700" font-size="30" fill="#2A3626">${pct}%</text>`;
+  html += `<text x="${cx}" y="${cy+16}" text-anchor="middle" font-family="Sarabun" font-size="10.5" fill="#5C6B57">ครอบครัวสุขภาพดี</text>`;
+
+  svg.innerHTML = html;
+  document.getElementById('dialCaption').innerHTML =
+    `<b>${counts.green} คนปกติ</b> · ${counts.amber} คนเฝ้าระวัง · ${counts.red} คนเสี่ยงสูง จากทั้งหมด ${total} คนในบ้าน`;
+}
+
+/* ---------------- RENDER: TASK CHIPS ---------------- */
+function renderChips(){
+  const wrap = document.getElementById('taskChips');
+  wrap.innerHTML = tasks.map((t,i)=>`
+    <div class="chip ${t.done?'done':''}" onclick="toggleChip(${i})">
+      <div class="ic">${t.ic}</div>
+      <div class="lb">${t.lb}</div>
+    </div>`).join('');
+}
+function toggleChip(i){ tasks[i].done = !tasks[i].done; renderChips(); }
+
+/* ---------------- RENDER: HOME MEMBER LIST ---------------- */
+function renderHomeList(){
+  const wrap = document.getElementById('homeMemberList');
+  wrap.innerHTML = members.map((m,i)=>{
+    const st = computeStatus(m);
+    return `<div class="member-card">
+      <div class="avatar" style="background:${avatarColors[i%avatarColors.length]}">${m.name.slice(0,1)}</div>
+      <div class="mc-body">
+        <div class="mc-name">${m.name}</div>
+        <div class="mc-meta">น้ำหนัก ${m.weight} กก. · เอว ${m.waist} ซม. · น้ำตาล ${m.sugar}</div>
+      </div>
+      <div class="status-pill" style="background:${statusColor[st]}">${statusLabel[st]}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------------- RENDER: LOG SCREEN ---------------- */
+function renderLogList(){
+  const wrap = document.getElementById('logMemberList');
+  wrap.innerHTML = members.map((m,i)=>{
+    const st = computeStatus(m);
+    return `
+    <div class="member-card">
+      <div class="avatar" style="background:${avatarColors[i%avatarColors.length]}">${m.name.slice(0,1)}</div>
+      <div class="mc-body">
+        <div class="mc-name">${m.name}</div>
+        <div class="mc-meta">${m.role} · บันทึกล่าสุด: วันนี้</div>
+      </div>
+      <div class="status-pill" style="background:${statusColor[st]}">${statusLabel[st]}</div>
+      <button class="plus-btn" onclick="toggleForm(${m.id})">+</button>
+    </div>
+    <div class="log-form" id="form-${m.id}">
+      <div class="log-grid">
+        <div><label>น้ำหนัก (กก.)</label><input type="number" id="w-${m.id}" value="${m.weight}"></div>
+        <div><label>รอบเอว (ซม.)</label><input type="number" id="wa-${m.id}" value="${m.waist}"></div>
+        <div><label>ความดัน SYS</label><input type="number" id="sys-${m.id}" value="${m.sys}"></div>
+        <div><label>ความดัน DIA</label><input type="number" id="dia-${m.id}" value="${m.dia}"></div>
+        <div><label>น้ำตาลปลายนิ้ว</label><input type="number" id="sug-${m.id}" value="${m.sugar}"></div>
+      </div>
+      <button class="save-btn" onclick="saveVitals(${m.id})">บันทึกค่า</button>
+    </div>`;
+  }).join('');
+}
+function toggleForm(id){
+  document.getElementById(`form-${id}`).classList.toggle('open');
+}
+function saveVitals(id){
+  const m = members.find(x=>x.id===id);
+  m.weight = parseFloat(document.getElementById(`w-${id}`).value) || m.weight;
+  m.waist  = parseFloat(document.getElementById(`wa-${id}`).value) || m.waist;
+  m.sys    = parseFloat(document.getElementById(`sys-${id}`).value) || m.sys;
+  m.dia    = parseFloat(document.getElementById(`dia-${id}`).value) || m.dia;
+  m.sugar  = parseFloat(document.getElementById(`sug-${id}`).value) || m.sugar;
+  document.getElementById(`form-${id}`).classList.remove('open');
+  renderLogList(); renderHomeList(); renderDial();
+}
+
+/* ---------------- RENDER: PLAN SCREEN ---------------- */
+function renderPlans(){
+  const wrap = document.getElementById('planList');
+  wrap.innerHTML = plans.map((p,pi)=>{
+    const done = p.tasks.filter(t=>t.done).length;
+    const pct = Math.round((done/p.tasks.length)*100);
+    return `
+    <div class="plan-card">
+      <div class="plan-head" onclick="togglePlan(${pi})">
+        <div class="plan-ic" style="background:${p.color}22;">${p.ic}</div>
+        <div class="plan-title">${p.title}</div>
+        <div class="plan-progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%; background:${p.color}"></div></div>
+          <div class="progress-label">${done}/${p.tasks.length} สำเร็จ</div>
+        </div>
+      </div>
+      <div class="plan-tasks" id="plan-tasks-${pi}">
+        ${p.tasks.map((t,ti)=>`
+          <div class="task-row ${t.done?'checked':''}">
+            <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${pi},${ti})">
+            <span>${t.t}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function togglePlan(pi){
+  document.getElementById(`plan-tasks-${pi}`).classList.toggle('open');
+}
+function toggleTask(pi,ti){
+  plans[pi].tasks[ti].done = !plans[pi].tasks[ti].done;
+  renderPlans();
+  document.getElementById(`plan-tasks-${pi}`).classList.add('open');
+}
+
+/* ---------------- RENDER: COMMUNITY ---------------- */
+function renderLeaderboard(){
+  const wrap = document.getElementById('leaderboard');
+  const sorted = [...leaderboard].sort((a,b)=>b.score-a.score);
+  const max = Math.max(...sorted.map(x=>x.score));
+  const legend = `<div class="legend">
+      <span><i style="background:#E1A73C"></i>เขตเทศบาล</span>
+      <span><i style="background:#6B8F6E"></i>เขต อบต.</span>
+    </div>`;
+  wrap.innerHTML = legend + sorted.map((h,i)=>`
+    <div class="lb-row ${h.me?'me':''}">
+      <div class="lb-rank">${i+1}</div>
+      <div class="lb-body">
+        <div class="lb-name"><span>${h.name}${h.me?' (บ้านคุณ)':''}</span><b>${h.score} แต้ม</b></div>
+        <div class="lb-village">${h.village}
+          <span class="zone-tag ${h.zone==='เทศบาล'?'muni':'obt'}">${h.zone}</span>
+        </div>
+        <div class="lb-track"><div class="lb-fill" style="width:${(h.score/max)*100}%"></div></div>
+      </div>
+    </div>`).join('');
+}
+function joinChallenge(){
+  const me = leaderboard.find(x=>x.me);
+  me.score += 6;
+  renderLeaderboard();
+}
+
+/* ---------------- NAV ---------------- */
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.screen===name));
+}
+
+/* ---------------- STAFF DASHBOARD DATA ---------------- */
+// อ้างอิงรายชื่อและเขตจาก Village_mapping.docx (12 หมู่บ้าน ตำบลคำใหญ่)
+let villages = [
+  {no:1,  name:'บ้านหัวสนาม',   zone:'อบต.',    hh:62,  red:8,  amber:20, green:34},
+  {no:2,  name:'บ้านคำเจริญ',   zone:'เทศบาล', hh:95,  red:14, amber:30, green:51},
+  {no:3,  name:'บ้านชัยศรี',    zone:'เทศบาล', hh:80,  red:10, amber:25, green:45},
+  {no:4,  name:'บ้านนาดี',      zone:'อบต.',    hh:70,  red:9,  amber:22, green:39},
+  {no:5,  name:'บ้านห้วยยาง',   zone:'อบต.',    hh:55,  red:12, amber:18, green:25},
+  {no:6,  name:'บ้านห้วยม่วง',  zone:'อบต.',    hh:48,  red:6,  amber:14, green:28},
+  {no:7,  name:'บ้านคำใหญ่',    zone:'เทศบาล', hh:110, red:20, amber:35, green:55},
+  {no:8,  name:'บ้านคำถาวร',    zone:'เทศบาล', hh:66,  red:7,  amber:19, green:40},
+  {no:9,  name:'บ้านโพธิ์ทอง',  zone:'เทศบาล', hh:58,  red:5,  amber:15, green:38},
+  {no:10, name:'บ้านโคกป่ากุง', zone:'เทศบาล', hh:72,  red:11, amber:24, green:37},
+  {no:11, name:'บ้านคำใหญ่',    zone:'เทศบาล', hh:64,  red:9,  amber:20, green:35},
+  {no:12, name:'บ้านคำเจริญ',   zone:'เทศบาล', hh:90,  red:13, amber:28, green:49},
+];
+let zoneFilter = 'all';
+
+function setZoneFilter(z){
+  zoneFilter = z;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active', b.dataset.zone===z));
+  renderStaffDashboard();
+}
+
+function renderStaffDashboard(){
+  const totalHH = villages.reduce((s,v)=>s+v.hh,0);
+  const totalRed = villages.reduce((s,v)=>s+v.red,0);
+  document.getElementById('statHouseholds').textContent = totalHH.toLocaleString('th-TH');
+  document.getElementById('statRedHH').textContent = totalRed.toLocaleString('th-TH');
+
+  let list = villages.filter(v => zoneFilter==='all' || v.zone===zoneFilter);
+  list = [...list].sort((a,b)=> (b.red/b.hh) - (a.red/a.hh));
+  const sortedAll = [...villages].sort((a,b)=>(b.red/b.hh)-(a.red/a.hh));
+  const topRiskNo = sortedAll[0].no;
+  const lowRiskNo = sortedAll[sortedAll.length-1].no;
+
+  document.getElementById('villageList').innerHTML = list.map(v=>{
+    const pctRed = Math.round((v.red/v.hh)*100);
+    const pctAmber = Math.round((v.amber/v.hh)*100);
+    const pctGreen = 100 - pctRed - pctAmber;
+    const isTop = v.no === topRiskNo;
+    const isLow = v.no === lowRiskNo;
+    return `
+    <div class="vcard ${isTop?'top-risk':''} ${isLow?'low-risk':''}">
+      ${isTop?'<div class="risk-badge">เสี่ยงสูงสุด</div>':''}
+      ${isLow?'<div class="risk-badge low">เสี่ยงต่ำสุด</div>':''}
+      <div class="vcard-head">
+        <div>
+          <div class="vcard-name">หมู่ ${v.no} ${v.name}</div>
+          <div class="vcard-hh">${v.hh} ครัวเรือน</div>
+        </div>
+        <span class="zone-tag ${v.zone==='เทศบาล'?'muni':'obt'}">${v.zone}</span>
+      </div>
+      <div class="stack-bar">
+        <div class="stack-seg" style="width:${pctGreen}%; background:var(--status-green)"></div>
+        <div class="stack-seg" style="width:${pctAmber}%; background:var(--status-amber)"></div>
+        <div class="stack-seg" style="width:${pctRed}%; background:var(--status-red)"></div>
+      </div>
+      <div class="vcard-foot">
+        <span>ปกติ ${pctGreen}% · เฝ้าระวัง ${pctAmber}%</span>
+        <span><b>เสี่ยงสูง ${pctRed}% (${v.red} ครัว)</b></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------------- INIT ---------------- */
+renderDial(); renderChips(); renderHomeList(); renderLogList(); renderPlans(); renderLeaderboard(); renderStaffDashboard();
+</script>
+</body>
+</html>
