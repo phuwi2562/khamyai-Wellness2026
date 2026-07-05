@@ -76,6 +76,15 @@ body{
   font-size:11px;background:rgba(255,255,255,0.14);
   padding:5px 10px;border-radius:20px;
 }
+.conn-badge{
+  font-size:9.5px;padding:3px 9px;border-radius:20px;margin-top:6px;
+  display:inline-flex;align-items:center;gap:5px;font-weight:600;
+}
+.conn-badge.pending{background:rgba(255,255,255,0.15);color:#fff;}
+.conn-badge.online{background:rgba(76,154,93,0.25);color:#eaffef;}
+.conn-badge.offline{background:rgba(198,83,62,0.3);color:#ffe9e5;}
+.conn-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.save-status{font-size:10.5px;text-align:center;margin-top:6px;color:var(--ink-soft);min-height:14px;}
 
 .screen{display:none; padding:20px; padding-bottom:100px;}
 .screen.active{display:block;}
@@ -283,6 +292,7 @@ body{
       </div>
       <div class="date-chip" id="todayChip">อัปเดตล่าสุดวันนี้</div>
     </div>
+    <div class="conn-badge pending" id="connBadge"><span class="conn-dot"></span><span id="connText">กำลังตรวจสอบการเชื่อมต่อ Google Sheet...</span></div>
   </div>
 
   <!-- SCREEN 1: HOME -->
@@ -361,6 +371,75 @@ body{
 </div>
 
 <script>
+/* ---------------- BACKEND CONNECTION (Google Apps Script) ---------------- */
+const CONFIG = {
+  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwYNJeJ3V2sS3ZF98qSA8HXya6CceoKwRpOqfj41beO1b3UX5DxAJPrfRdHXjyEUgpkGw/exec',
+  HOUSEHOLD_ID: 'HH-0001', // household_id ตัวอย่าง (ในแอปจริงมาจากการล็อกอิน)
+};
+
+async function apiGet(table){
+  const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${encodeURIComponent(CONFIG.HOUSEHOLD_ID)}&table=${encodeURIComponent(table)}`;
+  const res = await fetch(url, { method:'GET' });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function apiPost(table, row){
+  const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+    method:'POST',
+    headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // เลี่ยง CORS preflight ของ Apps Script
+    body: JSON.stringify({ userId: CONFIG.HOUSEHOLD_ID, table, row }),
+  });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function checkConnection(){
+  const badge = document.getElementById('connBadge');
+  const text = document.getElementById('connText');
+  try{
+    const [membersRes, vitalsRes] = await Promise.all([
+      apiGet('Members'),
+      apiGet('VitalRecords'),
+    ]);
+    if(membersRes.error) throw new Error(membersRes.error);
+    if(vitalsRes.error) throw new Error(vitalsRes.error);
+
+    if(membersRes.data && membersRes.data.length > 0){
+      // สร้างตาราง member_id -> ค่าสุขภาพล่าสุด
+      const latestByMember = {};
+      (vitalsRes.data || []).forEach(v => {
+        const prev = latestByMember[v.member_id];
+        if(!prev || new Date(v.date) >= new Date(prev.date)) latestByMember[v.member_id] = v;
+      });
+
+      members = membersRes.data.map(m => {
+        const numId = parseInt(String(m.member_id).replace(/\D/g,''), 10) || 0;
+        const v = latestByMember[m.member_id] || {};
+        return {
+          id: numId,
+          name: m.nickname_or_initial || m.member_id,
+          role: m.role_in_family || '',
+          weight: Number(v.weight_kg) || 0,
+          waist: Number(v.waist_cm) || 0,
+          sys: Number(v.bp_sys) || 0,
+          dia: Number(v.bp_dia) || 0,
+          sugar: Number(v.blood_sugar) || 0,
+        };
+      });
+      badge.className = 'conn-badge online';
+      text.textContent = `เชื่อมต่อ Google Sheet สำเร็จ · โหลดข้อมูล ${members.length} คนจริง`;
+    } else {
+      badge.className = 'conn-badge online';
+      text.textContent = 'เชื่อมต่อสำเร็จ · ยังไม่มีสมาชิกใน Sheet (แสดงข้อมูลตัวอย่าง)';
+    }
+    renderDial(); renderHomeList(); renderLogList();
+  }catch(err){
+    badge.className = 'conn-badge offline';
+    text.textContent = 'ออฟไลน์ — กำลังแสดงข้อมูลตัวอย่างในเครื่อง';
+  }
+}
+
 /* ---------------- STATE ---------------- */
 const statusColor = {green:'var(--status-green)', amber:'var(--status-amber)', red:'var(--status-red)'};
 const statusHex = {green:'#4C9A5D', amber:'#D9A23B', red:'#C6533E'};
@@ -530,19 +609,43 @@ function renderLogList(){
         <div><label>น้ำตาลปลายนิ้ว</label><input type="number" id="sug-${m.id}" value="${m.sugar}"></div>
       </div>
       <button class="save-btn" onclick="saveVitals(${m.id})">บันทึกค่า</button>
+      <div class="save-status" id="saveStatus-${m.id}"></div>
     </div>`;
   }).join('');
 }
 function toggleForm(id){
   document.getElementById(`form-${id}`).classList.toggle('open');
 }
-function saveVitals(id){
+async function saveVitals(id){
   const m = members.find(x=>x.id===id);
   m.weight = parseFloat(document.getElementById(`w-${id}`).value) || m.weight;
   m.waist  = parseFloat(document.getElementById(`wa-${id}`).value) || m.waist;
   m.sys    = parseFloat(document.getElementById(`sys-${id}`).value) || m.sys;
   m.dia    = parseFloat(document.getElementById(`dia-${id}`).value) || m.dia;
   m.sugar  = parseFloat(document.getElementById(`sug-${id}`).value) || m.sugar;
+
+  const statusEl = document.getElementById(`saveStatus-${id}`);
+  statusEl.textContent = 'กำลังบันทึกไปยัง Google Sheet...';
+
+  const row = {
+    record_id: 'VR-' + Date.now(),
+    member_id: 'M-' + String(id).padStart(4,'0'),
+    date: new Date().toISOString().slice(0,10),
+    weight_kg: m.weight, waist_cm: m.waist,
+    bp_sys: m.sys, bp_dia: m.dia, blood_sugar: m.sugar,
+    recorded_by: 'สมาชิกครอบครัว', risk_status: computeStatus(m),
+    household_id: CONFIG.HOUSEHOLD_ID,
+  };
+
+  try{
+    const result = await apiPost('VitalRecords', row);
+    if(result && result.error) throw new Error(result.error);
+    statusEl.textContent = '✓ บันทึกไปยัง Google Sheet เรียบร้อย';
+    await checkConnection(); // โหลดข้อมูลล่าสุดจาก Sheet กลับมาแสดง
+  }catch(err){
+    statusEl.textContent = '⚠ เชื่อมต่อ Google Sheet ไม่สำเร็จ บันทึกไว้ในเครื่องชั่วคราว';
+  }
+
   document.getElementById(`form-${id}`).classList.remove('open');
   renderLogList(); renderHomeList(); renderDial();
 }
@@ -684,6 +787,7 @@ function renderStaffDashboard(){
 
 /* ---------------- INIT ---------------- */
 renderDial(); renderChips(); renderHomeList(); renderLogList(); renderPlans(); renderLeaderboard(); renderStaffDashboard();
+checkConnection();
 </script>
 </body>
 </html>
