@@ -412,6 +412,9 @@ async function checkConnection(){
         const prev = latestByMember[v.member_id];
         if(!prev || new Date(v.date) >= new Date(prev.date)) latestByMember[v.member_id] = v;
       });
+      
+      console.log('Debug - latestByMember:', latestByMember);
+      console.log('Debug - membersRes.data:', membersRes.data);
 
       members = membersRes.data.map(m => {
         const numId = parseInt(String(m.member_id).replace(/\D/g,''), 10) || 0;
@@ -420,11 +423,11 @@ async function checkConnection(){
           id: numId,
           name: m.nickname_or_initial || m.member_id,
           role: m.role_in_family || '',
-          weight: Number(v.weight_kg) || 0,
-          waist: Number(v.waist_cm) || 0,
-          sys: Number(v.bp_sys) || 0,
-          dia: Number(v.bp_dia) || 0,
-          sugar: Number(v.blood_sugar) || 0,
+          weight: Math.round(parseFloat(v.weight_kg) * 10) / 10 || 0,
+          waist: Math.round(parseFloat(v.waist_cm) * 10) / 10 || 0,
+          sys: Math.round(parseFloat(v.bp_sys)) || 0,
+          dia: Math.round(parseFloat(v.bp_dia)) || 0,
+          sugar: Math.round(parseFloat(v.blood_sugar)) || 0,
         };
       });
       badge.className = 'conn-badge online';
